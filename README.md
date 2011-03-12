@@ -6,7 +6,7 @@ from DoS attacks by requiring the resolving client to perform a
 proof-of-work (PoW) computation to obtain an IP. A PoW function is
 costly (CPU time or RAM size) to compute, slowing down a DoS attack.
 The returned IPs are randomized within 64-bits of the IPv6 address space
-and each returned IP is tied to the requesting client `&mdash;` malicious
+and each returned IP is tied to the requesting client &mdash; malicious
 clients may not share resolved IPs to circumvent the system.
 
 Please see `docs/project_proposal.md` for more information.
