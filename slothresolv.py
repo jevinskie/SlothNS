@@ -37,9 +37,10 @@ class SlothNSResolver(client.Resolver):
 resolver = SlothNSResolver(servers=[('127.0.0.1', 5454)])
 
 r = resolver.lookupAddress('google.com')
-def derp(herp):
-    print socket.inet_ntop(socket.AF_INET, herp[0][0].payload.address)
+def print_ip(result):
+    print socket.inet_ntop(socket.AF_INET, result[0][0].payload.address)
+    reactor.stop()
 
-r.addCallback(derp)
+r.addCallback(print_ip)
 
 reactor.run()
