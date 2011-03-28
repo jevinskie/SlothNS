@@ -3,6 +3,7 @@
 import socket
 from twisted.names import dns, client
 from twisted.internet import reactor, defer
+import operator
 
 class SlothNSResolver(client.Resolver):
 
@@ -28,7 +29,7 @@ class SlothNSResolver(client.Resolver):
         res = yield client.Resolver.lookupAddress(self, name, timeout)
         challenge = res[2][0]
         challenge = challenge.payload.data[0].lstrip('challenge: ')
-        response = eval(challenge)
+        response = reduce(operator.mul, map(int, challenge.split('*')))
         query_a = dns.Query(name = name, type = dns.A, cls = dns.IN)
         query_res = dns.Query(name = 'response: %d' % response, type = dns.TXT, cls = dns.IN)
         res = yield self._lookup_queries([query_a, query_res], timeout)
