@@ -19,12 +19,6 @@ DNS server is able to issue a PoW challenge and check the response before
 returning a random IPv4 address. A Twisted-based resolver is provided to test
 the server.
 
-WARNING
--------
-
-The SlothNS resolver currently uses `eval()` to compute the PoW function.
-This is a **HUGE** remote code execution vulnerability!
-
 What remains to be done?
 ========================
 
