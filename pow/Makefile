@@ -1,4 +1,4 @@
-CFLAGS = -ggdb3 -O0 -Wall -Wextra -std=c99
+CFLAGS = -ggdb3 -Os -std=c99 -Wall -Wextra
 
 .PHONY = all
 all: pow_test

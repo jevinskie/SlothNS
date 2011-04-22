@@ -1,5 +1,34 @@
 #include "pow.h"
 
+uint32_t _rot(uint32_t x, int n)
+{
+    return (x<<n)|(x>>(32-n));
+}
+
+uint32_t _rand(uint32_t state[4])
+{
+  uint32_t e = state[0] - _rot(state[1], 27);
+  state[0] = state[1] ^ _rot(state[2], 17);
+  state[1] = state[2] + state[3];
+  state[2] = state[3] + e;
+  state[3] = e + state[0];
+  return state[3];
+}
+
+void _rand_init(uint32_t state[4], uint32_t seed)
+{
+  int i;
+
+  state[0] = 0xf1ea5eed;
+  state[1] = state[2] = state[3] = seed;
+
+  for (i = 0; i < 20; i++)
+  {
+    (void)_rand(state);
+  }
+}
+
+// create the permutated table in D (0 -> 2^n-1)
 void _gen_perm_table(pow_t *p)
 {
     uint32_t i;
@@ -8,62 +37,73 @@ void _gen_perm_table(pow_t *p)
 
     assert(p != NULL);
 
+    // allocate the table
     p->perm_table = malloc(sizeof(uint32_t) * p->size);
     assert(p->perm_table != NULL);
 
+    // fill the table with the elements of D
     for (i = 0; i < p->size; i++)
     {
         p->perm_table[i] = i;
     }
 
-    for (i = 0; i < p->size; i++)
+    // fischer yates shuffle
+    for (i = p->size - 1; i >= 1; i--)
     {
-        rand_index = jrand48(p->rand);
+        rand_index = _rand(p->rand) % (i + 1);
         tmp = p->perm_table[i];
-        p->perm_table[i] = p->perm_table[rand_index % p->size];
-        p->perm_table[rand_index % p->size] = tmp;
+        p->perm_table[i] = p->perm_table[rand_index];
+        p->perm_table[rand_index] = tmp;
     }
 
     return;
 }
 
-pow_req_t *pow_create_req(pow_t *p)
+// creates a PoW request to be sent to a client
+pow_req_t *pow_create_req(pow_t *p, uint32_t l)
 {
     pow_req_t *r;
-    uint32_t x0, xi;
-    uint32_t i;
+    uint32_t xi;
     uint32_t check;
+    uint32_t i;
 
     assert(p != NULL);
 
+    assert(l > 0 && l <= 32);
+
+    // allocate the request
     r = malloc(sizeof(pow_req_t));
     assert(r != NULL);
 
+    // copy the parameters
     r->n = p->n;
-    r->l = p->l;
-    memcpy(r->seed, p->seed, sizeof(r->seed));
+    r->l = l;
+    r->seed = p->seed;
 
-    r->v = malloc(sizeof(uint32_t) * p->l);
+    // allocate the v and w tables
+    r->v = malloc(sizeof(uint32_t) * l);
     assert(r->v != NULL);
 
-    r->w = malloc(sizeof(uint32_t) * p->l);
+    r->w = malloc(sizeof(uint32_t) * l);
     assert(r->v != NULL);
 
-    x0 = jrand48(p->rand) % p->size;
-    r->x0 = x0;
-
-    for (i = 0; i < p->l; i++)
+    // fill v and w with random numbers within D
+    for (i = 0; i < l; i++)
     {
-        r->v[i] = jrand48(p->rand);
-        r->w[i] = jrand48(p->rand);
+        r->v[i] = _rand(p->rand) % p->size;
+        r->w[i] = _rand(p->rand) % p->size;
     }
+    
+    // choose a random starting point in D
+    r->x0 = _rand(p->rand) % p->size;
 
-    xi = x0;
-    check = x0;
+    xi = r->x0;
+    check = r->x0;
 
-    for (i = 0; i < p->l; i++)
+    // walk a random path through D
+    for (i = 0; i < l; i++)
     {
-        if (jrand48(p->rand) & 1)
+        if (_rand(p->rand) & 1)
         {
             xi = p->perm_table[(xi ^ r->v[i]) % p->size];
         }
@@ -71,6 +111,8 @@ pow_req_t *pow_create_req(pow_t *p)
         {
             xi = p->perm_table[(xi ^ r->w[i]) % p->size];
         }
+
+        // calculate the simple checksum
         check ^= xi << i;
     }
 
@@ -79,19 +121,20 @@ pow_req_t *pow_create_req(pow_t *p)
     return r;
 }
 
+// verifies the response to a given request
 int pow_verify_res(pow_t *p, pow_req_t *req, pow_res_t *res)
 {
-    uint32_t x0, xi;
-    uint32_t i;
+    uint32_t xi;
     uint32_t check;
     uint32_t path;
+    uint32_t i;
 
     assert(p != NULL);
     assert(req != NULL);
     assert(res != NULL);
 
-    check = x0;
-    xi = x0;
+    xi = req->x0;
+    check = req->x0;
 
     path = res->path;
 
@@ -119,10 +162,10 @@ int pow_verify_res(pow_t *p, pow_req_t *req, pow_res_t *res)
     }
 }
 
-int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, int level)
+int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, uint32_t level)
 {
     uint32_t xv, xw;
-    int64_t v_child, w_child;
+    int64_t path;
 
     assert(p != NULL);
     assert(req != NULL);
@@ -130,20 +173,24 @@ int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, int lev
     if (level < req->l)
     {
         xv = p->perm_table[(x ^ req->v[level]) % p->size];
-        v_child = _solve_req(p, req, xv, check ^ (xv << level), level + 1);
-        if (v_child >= 0)
+        path = _solve_req(p, req, xv, check ^ (xv << level), level + 1);
+        
+        if (path >= 0)
         {
-            v_child <<= 1;
-            v_child |= 1;
-            return v_child;
+            path <<= 1;
+            path |= 1;
+            return path;
         }
+
         xw = p->perm_table[(x ^ req->w[level]) % p->size];
-        w_child = _solve_req(p, req, xw, check ^ (xw << level), level + 1);
-        if (w_child >= 0)
+        path = _solve_req(p, req, xw, check ^ (xw << level), level + 1);
+        
+        if (path >= 0)
         {
-            w_child <<= 1;
-            return w_child;
+            path <<= 1;
+            return path;
         }
+        
         return -1;
     }
     else if (req->check == check)
@@ -163,9 +210,11 @@ pow_res_t *pow_create_res(pow_t *p, pow_req_t *req)
     assert(p != NULL);
     assert(req != NULL);
 
+    // allocate the response
     res = malloc(sizeof(pow_res_t));
     assert(res != NULL);
 
+    // find the path that satisfies the request
     res->path = _solve_req(p, req, req->x0, req->x0, 0);
 
     return res;
@@ -186,18 +235,19 @@ void pow_destroy_req(pow_req_t *r)
     free(r);
 }
 
-pow_t *pow_create(size_t n, size_t l, uint64_t seed)
+pow_t *pow_create(uint32_t n, uint32_t seed)
 {
     pow_t *p;
 
     p = malloc(sizeof(pow_t));
     assert(p != NULL);
 
-    memcpy(p->rand, &seed, sizeof(p->rand));
-    memcpy(p->seed, &seed, sizeof(p->seed));
+    assert(n > 0 && n <= 32);
+
+    p->seed = seed;
+    _rand_init(p->rand, seed);
     p->n = n;
     p->size = 1<<n;
-    p->l = l;
 
     _gen_perm_table(p);
 
