@@ -76,9 +76,7 @@ pow_req_t *pow_create_req(pow_t *p, uint32_t l)
     assert(r != NULL);
 
     // copy the parameters
-    r->n = p->n;
     r->l = l;
-    r->seed = p->seed;
 
     // allocate the v and w tables
     r->v = malloc(sizeof(uint32_t) * l);
@@ -93,7 +91,7 @@ pow_req_t *pow_create_req(pow_t *p, uint32_t l)
         r->v[i] = _rand(p->rand) % p->size;
         r->w[i] = _rand(p->rand) % p->size;
     }
-    
+
     // choose a random starting point in D
     r->x0 = _rand(p->rand) % p->size;
 
@@ -174,7 +172,7 @@ int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, uint32_
     {
         xv = p->perm_table[(x ^ req->v[level]) % p->size];
         path = _solve_req(p, req, xv, check ^ (xv << level), level + 1);
-        
+
         if (path >= 0)
         {
             path <<= 1;
@@ -184,13 +182,13 @@ int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, uint32_
 
         xw = p->perm_table[(x ^ req->w[level]) % p->size];
         path = _solve_req(p, req, xw, check ^ (xw << level), level + 1);
-        
+
         if (path >= 0)
         {
             path <<= 1;
             return path;
         }
-        
+
         return -1;
     }
     else if (req->check == check)

@@ -9,14 +9,11 @@ typedef struct {
     uint32_t seed;
     uint32_t size;
     uint32_t n;
-    uint32_t m;
 } pow_t;
 
 typedef struct {
-    uint32_t seed;
     uint32_t x0;
     uint32_t check;
-    uint32_t n;
     uint32_t l;
     uint32_t *v, *w;
 } pow_req_t;
