@@ -79,10 +79,6 @@ pow_req_t *pow_create_req(pow_t *p)
     return r;
 }
 
-<<<<<<< HEAD
-void pow_destroy_req(pow_req_t *r)
-{
-=======
 int pow_verify_res(pow_t *p, pow_req_t *req, pow_res_t *res)
 {
     uint32_t x0, xi;
