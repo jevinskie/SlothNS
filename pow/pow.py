@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from ctypes import *
 
 class _pow_t(Structure):
