@@ -57,7 +57,7 @@ class pow_res(object):
         self.pow = pow
         self.req = req
         self.res_t = _pow_lib.create_res(self.pow.pow_t, self.req.req_t)
-    def __del(self):
+    def __del__(self):
         _pow_lib.destroy_res(self.res_t)
 
 class pow_req(object):
