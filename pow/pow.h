@@ -22,8 +22,15 @@ typedef struct {
     uint32_t *v, *w;
 } pow_req_t;
 
+typedef struct {
+    uint32_t path;
+} pow_res_t;
+
 pow_t *pow_create(size_t n, size_t l, uint64_t seed);
 void pow_destroy(pow_t *p);
 pow_req_t *pow_create_req(pow_t *p);
 void pow_destroy_req(pow_req_t *r);
+int pow_verify_res(pow_t *p, pow_req_t *req, pow_res_t *res);
+pow_res_t *pow_create_res(pow_t *p, pow_req_t *req);
+void pow_destroy_res(pow_res_t *r);
 
