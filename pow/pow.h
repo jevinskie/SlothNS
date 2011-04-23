@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#pragma pack(1)
+
 typedef struct {
     uint32_t *perm_table;
     uint32_t rand[4];

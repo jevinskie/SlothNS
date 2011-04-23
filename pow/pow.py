@@ -6,6 +6,7 @@ class _pow_t(Structure):
                 ("seed", c_uint32),
                 ("size", c_uint32),
                 ("n", c_uint32),]
+    _pack_ = 1
 _pow_t_p = POINTER(_pow_t)
 
 class _pow_req_t(Structure):
@@ -14,10 +15,12 @@ class _pow_req_t(Structure):
                 ("l", c_uint32),
                 ("v", POINTER(c_uint32)),
                 ("w", POINTER(c_uint32)),]
+    _pack_ = 1
 _pow_req_t_p = POINTER(_pow_req_t)
 
 class _pow_res_t(Structure):
     _fields_ = [("path", c_uint32),]
+    _pack_ = 1
 _pow_res_t_p = POINTER(_pow_res_t)
 
 _pow_lib = cdll.LoadLibrary(".libs/libpow.so")
