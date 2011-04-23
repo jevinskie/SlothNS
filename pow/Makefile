@@ -4,7 +4,7 @@ CC = gcc
 all: pow_test libpow.la
 
 clean:
-	rm -rf pow_test *.o *.lo *.a *.la .libs
+	rm -rf pow_test *.o *.lo *.a *.la .libs *.pyo *.pyc
 
 .PHONY = all clean
 
