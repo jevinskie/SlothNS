@@ -111,7 +111,7 @@ pow_req_t *pow_create_req(pow_t *p, uint32_t l)
         }
 
         // calculate the simple checksum
-        check ^= xi << i;
+        check ^= _rot(xi, i);
     }
 
     r->check = check;
@@ -146,7 +146,7 @@ int pow_verify_res(pow_t *p, pow_req_t *req, pow_res_t *res)
         {
             xi = p->perm_table[(xi ^ req->w[i]) % p->size];
         }
-        check ^= xi << i;
+        check ^= _rot(xi, i);
         path >>= 1;
     }
 
@@ -171,7 +171,7 @@ int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, uint32_
     if (level < req->l)
     {
         xv = p->perm_table[(x ^ req->v[level]) % p->size];
-        path = _solve_req(p, req, xv, check ^ (xv << level), level + 1);
+        path = _solve_req(p, req, xv, check ^ _rot(xv, level), level + 1);
 
         if (path >= 0)
         {
@@ -181,7 +181,7 @@ int64_t _solve_req(pow_t *p, pow_req_t *req, uint32_t x, uint32_t check, uint32_
         }
 
         xw = p->perm_table[(x ^ req->w[level]) % p->size];
-        path = _solve_req(p, req, xw, check ^ (xw << level), level + 1);
+        path = _solve_req(p, req, xw, check ^ _rot(xw, level), level + 1);
 
         if (path >= 0)
         {

@@ -48,8 +48,6 @@ int main ()
   cstart = clock();
   
   server_chal = gen_req(sizeT, depth, T, seed, v, w);
-  free(v);
-  free(w);
 
   cend = clock();
 
