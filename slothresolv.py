@@ -8,7 +8,8 @@ import operator
 from ctypes import *
 
 class pow_wire_req(BigEndianStructure):
-    _fields_ = [("a", c_uint32),
+    _fields_ = [("magic", c_uint32),
+                ("a", c_uint32),
                 ("b", c_uint32),]
     _pack_ = 1
     def pack(self):
@@ -17,7 +18,8 @@ class pow_wire_req(BigEndianStructure):
         memmove(addressof(self), packed, min(sizeof(self), len(packed)))
 
 class pow_wire_res(BigEndianStructure):
-    _fields_ = [("r", c_uint32),]
+    _fields_ = [("magic", c_uint32),
+                ("r", c_uint32),]
     _pack_ = 1
     def pack(self):
         return string_at(addressof(self), sizeof(self))
@@ -53,7 +55,7 @@ class SlothNSResolver(client.Resolver):
         resp.magic = 0xFACEFEED
         resp.r = req.a * req.b
         query_a = dns.Query(name = name)
-        query_res = dns.Query(name = name, payload = resp.pack(), type = dns.NULL, cls = dns.IN)
+        query_res = dns.Query(name = resp.pack(), type = dns.NULL)
         res = yield self._lookup_queries([query_a, query_res], timeout)
         defer.returnValue(res)
 
