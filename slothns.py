@@ -65,7 +65,7 @@ class SlothNSServerFactory(server.DNSServerFactory):
         query = filter(lambda q: q.type == dns.A, message.queries)[0]
         response = filter(lambda q: q.type == dns.NULL, message.queries)[0]
         res = pow_wire_res()
-        res.unpack(response)
+        res.unpack(response.name.name)
         ip = address[0]
         correct_response = reduce(operator.mul, self.liveChallenges[ip])
         del self.liveChallenges[ip]
