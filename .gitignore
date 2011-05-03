@@ -22,3 +22,6 @@ pow_test
 
 # virtualenv
 env
+
+# result files
+latency.csv
