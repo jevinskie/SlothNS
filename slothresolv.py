@@ -1,30 +1,13 @@
 #!/usr/bin/env python
 
+import sys
+sys.path.append('./pow')
+
 import socket
 from twisted.names import dns, client
 from twisted.internet import reactor, defer
 import operator
-
-from ctypes import *
-
-class pow_wire_req(BigEndianStructure):
-    _fields_ = [("magic", c_uint32),
-                ("a", c_uint32),
-                ("b", c_uint32),]
-    _pack_ = 1
-    def pack(self):
-        return string_at(addressof(self), sizeof(self))
-    def unpack(self, packed):
-        memmove(addressof(self), packed, min(sizeof(self), len(packed)))
-
-class pow_wire_res(BigEndianStructure):
-    _fields_ = [("magic", c_uint32),
-                ("r", c_uint32),]
-    _pack_ = 1
-    def pack(self):
-        return string_at(addressof(self), sizeof(self))
-    def unpack(self, packed):
-        memmove(addressof(self), packed, min(sizeof(self), len(packed)))
+from pow import *
 
 class SlothNSResolver(client.Resolver):
 
@@ -49,13 +32,10 @@ class SlothNSResolver(client.Resolver):
     def lookupAddress(self, name, timeout = None):
         res = yield client.Resolver.lookupAddress(self, name, timeout)
         challenge = res[2][0]
-        req = pow_wire_req()
-        req.unpack(challenge.payload.payload)
-        resp = pow_wire_res()
-        resp.magic = 0xFACEFEED
-        resp.r = req.a * req.b
+        req = pow_req(wire = challenge.payload.payload)
+        res = req.create_res()
         query_a = dns.Query(name = name)
-        query_res = dns.Query(name = resp.pack(), type = dns.NULL)
+        query_res = dns.Query(name = res.pack(), type = dns.NULL)
         res = yield self._lookup_queries([query_a, query_res], timeout)
         defer.returnValue(res)
 
