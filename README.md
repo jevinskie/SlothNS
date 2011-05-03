@@ -16,14 +16,12 @@ What works right now?
 
 A very rough, prototype implementation of the idea is underway. A Twisted-based
 DNS server is able to issue a PoW challenge and check the response before
-returning a random IPv4 address. A Twisted-based resolver is provided to test
+returning a random IPv6 address. A Twisted-based resolver is provided to test
 the server.
 
 What remains to be done?
 ========================
 
- * Switch to using IPv6 instead of IPv4
- * Use a real PoW function instead of integer multiplication
  * Implement the new resolver in glibc to allow unmodified program to use SlothNS
  * Have the server register random resolved IPs with the system firewall to allow
    access to the protected service
