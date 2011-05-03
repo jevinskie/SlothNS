@@ -62,30 +62,17 @@ _pow_res_wire = \
         UBInt32("path"),
     )
 
-_pow_req_wire_header = \
+_pow_req_wire = \
     Struct("pow_req_wire_head",
-        Const(String("magic", 8), "SLOTHRQH"),
+        Const(String("magic", 8), "SLOTHREQ"),
         UBInt32("seed"),
         UBInt8("n"),
         UBInt32("x0"),
         UBInt32("check"),
         UBInt8("l"),
-    )
-
-_pow_req_wire_v = \
-    Struct("pow_req_wire_v",
-        Const(String("magic", 8), "SLOTHRQV"),
-        UBInt8("l"),
         Array(lambda ctx: ctx.l, UBInt32("v")),
-    )
-
-_pow_req_wire_w = \
-    Struct("pow_req_wire_w",
-        Const(String("magic", 8), "SLOTHRQW"),
-        UBInt8("l"),
         Array(lambda ctx: ctx.l, UBInt32("w")),
     )
-
 
 class pow_res(object):
     def __init__(self, pow_obj, req, wire = None):
@@ -120,19 +107,17 @@ class pow_res(object):
 class pow_req(object):
     def __init__(self, pow_obj = None, l = None, wire = None):
         if wire:
-            h = _pow_req_wire_header.parse(wire[0])
-            v = _pow_req_wire_v.parse(wire[1])
-            w = _pow_req_wire_w.parse(wire[2])
-            pow_obj = pow(h.n, h.seed)
-            l = h.l
+            c = _pow_req_wire.parse(wire)
+            pow_obj = pow(c.n, c.seed)
+            l = c.l
         self.pow = pow_obj
         self.req_t = _pow_lib.create_req(self.pow.pow_t, l)
         if wire:
             for i in range(l):
-                self.v[i] = v.v[i]
-                self.w[i] = w.w[i]
-            self.x0 = h.x0
-            self.check = h.check
+                self.v[i] = c.v[i]
+                self.w[i] = c.w[i]
+            self.x0 = c.x0
+            self.check = c.check
 
     def __del__(self):
         _pow_lib.destroy_req(self.req_t)
@@ -159,25 +144,16 @@ class pow_req(object):
         return pow_res(pow_obj = self.pow, req = self)
 
     def pack(self):
-        h = Container()
-        v = Container()
-        w = Container()
-        h.magic = None
-        v.magic = None
-        w.magic = None
-        h.seed = self.pow.seed
-        h.n = self.pow.n
-        h.x0 = self.x0
-        h.check = self.check
-        h.l = self.l
-        v.l = self.l
-        w.l = self.l
-        v.v = [self.v[i] for i in range(self.l)]
-        w.w = [self.w[i] for i in range(self.l)]
-        h_packed = _pow_req_wire_header.build(h)
-        v_packed = _pow_req_wire_v.build(v)
-        w_packed = _pow_req_wire_w.build(w)
-        return (h_packed, v_packed, w_packed)
+        c = Container()
+        c.magic = None
+        c.seed = self.pow.seed
+        c.n = self.pow.n
+        c.x0 = self.x0
+        c.check = self.check
+        c.l = self.l
+        c.v = [self.v[i] for i in range(self.l)]
+        c.w = [self.w[i] for i in range(self.l)]
+        return _pow_req_wire.build(c)
 
 
 class pow(object):
