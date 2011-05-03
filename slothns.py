@@ -8,10 +8,11 @@ from twisted.internet import reactor, interfaces, defer
 from twisted.names import dns, server
 from twisted.python import log
 import operator
+import subprocess
 from pow import *
 
 class SlothNSServerFactory(server.DNSServerFactory):
-    def __init__(self, n = 20, seed = 0, l = 10, verbose = 0):
+    def __init__(self, baseip = None, n = 20, seed = 0, l = 10, verbose = 0):
         server.DNSServerFactory.__init__(self, verbose = verbose)
         self.liveChallenges = {}
         if verbose:
@@ -21,7 +22,7 @@ class SlothNSServerFactory(server.DNSServerFactory):
         if verbose:
             print "done!"
         self.l = l
-        self.base_ipv6 = "1:2:3:4"
+        self.baseip = baseip
         return
 
     def makeRR(self, name, resource):
@@ -47,7 +48,8 @@ class SlothNSServerFactory(server.DNSServerFactory):
 
     def gen_rand_ipv6(self):
         rand_part = ':'.join([hex(random.randrange(0,2**16))[2:] for i in range(4)])
-        whole = self.base_ipv6 + ':' + rand_part
+        whole = self.baseip + ':' + rand_part
+        subprocess.check_call(['ip', 'addr', 'add', whole, 'dev', 'he-ipv6'])
         return whole
 
     def checkResponse(self, message, protocol, address):
@@ -75,7 +77,7 @@ class SlothNSServerFactory(server.DNSServerFactory):
             self.checkResponse(message, protocol, address)
         return
 
-factory = SlothNSServerFactory(verbose = 10)
+factory = SlothNSServerFactory(baseip = sys.argv[1], verbose = 10)
 ltcp = reactor.listenTCP(5454, factory)
 
 f2 = dns.DNSDatagramProtocol(factory)
