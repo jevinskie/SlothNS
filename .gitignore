@@ -20,3 +20,5 @@
 # executables
 pow_test
 
+# virtualenv
+env

@@ -1132,7 +1132,7 @@ def create_bootstrap_script(extra_text, python_version=''):
 
 def after_install(options, home_dir):
     subprocess.check_call([join(home_dir, 'bin', 'pip'),
-                            'install', 'construct', 'twisted'])
+                            'install', '-U', 'construct', 'twisted'])
 
 
 ##file site.py

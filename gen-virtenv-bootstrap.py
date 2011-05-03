@@ -6,7 +6,7 @@ import stat
 
 def after_install(options, home_dir):
     subprocess.check_call([join(home_dir, 'bin', 'pip'),
-                            'install', 'construct', 'twisted'])
+                            'install', '-U', 'construct', 'twisted'])
 
 src = ''.join(inspect.getsourcelines(after_install)[0])
 
