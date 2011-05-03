@@ -34,16 +34,16 @@ class SlothNSResolver(client.Resolver):
         challenge = res[2][0]
         req = pow_req(wire = challenge.payload.payload)
         res = req.create_res()
-        query_a = dns.Query(name = name)
+        query_aaaa = dns.Query(name = name, type = dns.AAAA)
         query_res = dns.Query(name = res.pack(), type = dns.NULL)
-        res = yield self._lookup_queries([query_a, query_res], timeout)
+        res = yield self._lookup_queries([query_aaaa, query_res], timeout)
         defer.returnValue(res)
 
 resolver = SlothNSResolver(servers=[('127.0.0.1', 5454)])
 
 r = resolver.lookupAddress('google.com')
 def print_ip(result):
-    print socket.inet_ntop(socket.AF_INET, result[0][0].payload.address)
+    print socket.inet_ntop(socket.AF_INET6, result[0][0].payload.address)
     reactor.stop()
 
 r.addCallback(print_ip)
