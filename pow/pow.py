@@ -56,6 +56,12 @@ _pow_lib.pow_destroy_res.argtypes = [_pow_res_t_p]
 _pow_lib.pow_destroy_res.restype = None
 _pow_lib.destroy_res = _pow_lib.pow_destroy_res
 
+_pow_res_wire = \
+    Struct("pow_res_wire",
+        Const(String("magic", 8), "SLOTHRES"),
+        UBInt32("path"),
+    )
+
 _pow_req_wire_header = \
     Struct("pow_req_wire_head",
         Const(String("magic", 8), "SLOTHRQH"),
@@ -82,33 +88,76 @@ _pow_req_wire_w = \
 
 
 class pow_res(object):
-    def __init__(self, pow, req):
-        self.pow = pow
+    def __init__(self, pow_obj, req, wire = None):
+        self.pow = pow_obj
         self.req = req
         self.res_t = _pow_lib.create_res(self.pow.pow_t, self.req.req_t)
+        if wire:
+            res = _pow_res_wire.parse(wire)
+            self.path = res.path
+
     def __del__(self):
         _pow_lib.destroy_res(self.res_t)
+
     def __getattr__(self, name):
         try:
             return self.res_t.contents.__getattribute__(name)
         except:
             raise AttributeError
 
+    def __setattr__(self, name, value):
+        if 'res_t' in self.__dict__ and any(name in f for f in self.res_t.contents._fields_):
+            self.res_t.contents.__setattr__(name, value)
+        else:
+            self.__dict__[name] = value
+
+    def pack(self):
+        c = Container()
+        c.magic = None
+        c.path = self.path
+        return _pow_res_wire.build(c)
+
 class pow_req(object):
-    def __init__(self, pow, l):
-        self.pow = pow
+    def __init__(self, pow_obj = None, l = None, wire = None):
+        if wire:
+            h = _pow_req_wire_header.parse(wire[0])
+            v = _pow_req_wire_v.parse(wire[1])
+            w = _pow_req_wire_w.parse(wire[2])
+            pow_obj = pow(h.n, h.seed)
+            l = h.l
+        self.pow = pow_obj
         self.req_t = _pow_lib.create_req(self.pow.pow_t, l)
+        if wire:
+            for i in range(l):
+                self.v[i] = v.v[i]
+                self.w[i] = w.w[i]
+            self.x0 = h.x0
+            self.check = h.check
+
     def __del__(self):
         _pow_lib.destroy_req(self.req_t)
+
     def __getattr__(self, name):
         try:
             return self.req_t.contents.__getattribute__(name)
         except:
             raise AttributeError
+
+    def __setattr__(self, name, value):
+        if 'req_t' in self.__dict__ and any(name in f for f in self.req_t.contents._fields_):
+            self.req_t.contents.__setattr__(name, value)
+        else:
+            self.__dict__[name] = value
+
     def verify_res(self, res):
-        return _pow_lib.verify_res(self.pow.pow_t, self.req_t, res.res_t)
+        if _pow_lib.verify_res(self.pow.pow_t, self.req_t, res.res_t):
+            return True
+        else:
+            return False
+
     def create_res(self):
-        return pow_res(self.pow, self)
+        return pow_res(pow_obj = self.pow, req = self)
+
     def pack(self):
         h = Container()
         v = Container()
@@ -130,16 +179,26 @@ class pow_req(object):
         w_packed = _pow_req_wire_w.build(w)
         return (h_packed, v_packed, w_packed)
 
+
 class pow(object):
     def __init__(self, n, seed):
         self.pow_t = _pow_lib.create(n, seed)
+
     def __del__(self):
         _pow_lib.destroy(self.pow_t)
+
     def __getattr__(self, name):
         try:
             return self.pow_t.contents.__getattribute__(name)
         except:
             raise AttributeError
+
+    def __setattr__(self, name, value):
+        if 'pow_t' in self.__dict__ and any(name in f for f in self.pow_t.contents._fields_):
+            self.pow_t.contents.__setattr__(name, value)
+        else:
+            self.__dict__[name] = value
+
     def create_req(self, l):
-        return pow_req(self, l)
+        return pow_req(pow_obj = self, l = l)
 
