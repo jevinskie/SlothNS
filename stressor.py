@@ -1,67 +1,81 @@
 #!/usr/bin/env python
 
-#!/usr/bin/env python
-
-from multiprocessing import Pool
 import sys
 import time
 import urllib2
 import random
+from threading import Timer, Thread
+from Queue import Queue, PriorityQueue
 
-from multiprocessing.pool import IMapIterator
+url = 'http://rossmann-a354.rcac.purdue.edu:8080/fib.php?n='
 
-url = 'http://rossmann-a246.rcac.purdue.edu:8080/fib.php?n='
+class fetcher(Thread):
+    def __init__(self, res_q, wait_q, work_q):
+        Thread.__init__(self)
+        self.res_q = res_q
+        self.wait_q = wait_q
+        self.work_q = work_q
 
-def wrapper(func):
-  def wrap(self, timeout=None):
-    # Note: the timeout of 1 googol seconds introduces a rather subtle 
-    # bug for Python scripts intended to run many times the age of the universe.
-    return func(self, timeout=timeout if timeout is not None else 1e100)
-  return wrap
-IMapIterator.next = wrapper(IMapIterator.next)
+    def run(self):
+        attacker = self.work_q.get()
+        if attacker:
+            n = 100
+        elif random.uniform(0, 1) > 0.9:
+            n = 9
+        else:
+            n = 29
+        n = 1
+        if attacker:
+            delay = 0
+        else:
+            # mean of 60 seconds
+            delay = random.expovariate(1.0/45)
+        start = time.time()
+        urllib2.urlopen(url + str(n))
+        end = time.time()
+        self.res_q.put((n, end - start))
+        self.wait_q.put((time.time() + delay, attacker))
+        self.work_q.task_done()
 
-def fetch(delay, attacker = False):
-    time.sleep(delay)
-    if attacker:
-        n = 10
-    elif random.uniform(0, 1) > 0.9:
-        n = 29
-    else:
-        n = 9
-    n = 1
-    if attacker:
-        delay = 0
-    else:
-        # mean of 60 seconds
-        delay = random.expovariate(1.0/60)
-    start = time.time()
-    urllib2.urlopen(url + str(n))
-    end = time.time()
-    return (n, end - start, delay)
-
-
-
+def do_fetch(attacker, res_q, wait_q, work_q):
+    work_q.put(attacker)
+    f = fetcher(res_q, wait_q, work_q)
+    f.start()
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    pool = Pool(processes=100)
+    wait_q = PriorityQueue()
+    work_q = Queue()
+    res_q = Queue()
 
     out_file = open('latency.csv', 'w')
-    
-    def process_result(res):
-        out_file.write("%d, %f, %f\n" % (res[0], res[1], res[2]))
-        #if ran < 1000:
-        #    pool.apply_async(fetch, (res[2],), callback=process_result)
 
     print "Running the gauntlet:"
-    for i in range(50):
-        pool.apply_async(fetch, (0,), callback=process_result)
+    for i in range(256):
+        wait_q.put((time.time(), False))
 
-    pool.close()
-    pool.join()
+    while True:
+        t, attacker = wait_q.get()
+        delta = t - time.time()
+        delay = max(delta, 0)
+        out_file.write("%f, " % delay)
+        out_file.flush()
+        Timer(delay, do_fetch, (attacker, res_q, wait_q, work_q)).start()
+        wait_q.task_done()
 
+        while not res_q.empty():
+            res = res_q.get()
+            out_file.write("%d, %f\n" % (res[0], res[1]))
+            res_q.task_done()
+
+    work_q.join()
+
+    while not res_q.empty():
+        res = res_q.get()
+        out_file.write("%d, %f\n" % (res[0], res[1]))
+        res_q.task_done()
 
     return 0
 
