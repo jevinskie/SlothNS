@@ -6,10 +6,10 @@ sys.path.append('./pow')
 import socket
 from twisted.names import dns, client
 from twisted.internet import reactor, defer
+from twisted.internet.threads import blockingCallFromThread
 import operator
+from threading import Thread
 from pow import *
-
-result = None
 
 class SlothNSResolver(client.Resolver):
 
@@ -32,7 +32,6 @@ class SlothNSResolver(client.Resolver):
 
     @defer.inlineCallbacks
     def lookupAddress(self, name, id = None, timeout = None):
-        global result
         query_aaaa = dns.Query(name = name, type = dns.AAAA)
         if id != None:
             query_id = dns.Query(name = 'id=%d' % id, type = dns.TXT)
@@ -47,15 +46,20 @@ class SlothNSResolver(client.Resolver):
             res = yield self._lookup_queries([query_aaaa, query_id, query_res], timeout)
         else:
             res = yield self._lookup_queries([query_aaaa, query_res], timeout)
-        result = res
-        reactor.stop()
+        defer.returnValue(res)
 
 #resolver = SlothNSResolver(servers=[('172.18.49.98', 5454)])
 resolver = SlothNSResolver(servers=[('127.0.0.1', 5454)])
 
-def query(id = None):
-    global result
-    reactor.callWhenRunning(resolver.lookupAddress, 'google.com', id = id)
-    reactor.run()
-    return result
+running = False
+
+def query(name, id = None):
+    global running
+    if not running:
+        running = True
+        Thread(target=reactor.run, args=(False,)).start()
+    return blockingCallFromThread(reactor, resolver.lookupAddress, name, id = id)
+
+def shutdown():
+    reactor.stop()
 
