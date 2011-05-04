@@ -5,45 +5,48 @@ import time
 import urllib2
 import random
 from threading import Timer, Thread
-from Queue import Queue, PriorityQueue
+from Queue import PriorityQueue, Empty
 import os
+from slothresolv import query
+from multiprocessing import Pool, Manager
 
-url = 'http://172.18.49.98:8080/fib.php?n='
+url = 'http://172.18.48.222:8080/fib.php?n='
 
 class fetcher(Thread):
-    def __init__(self, res_q, wait_q, work_q):
+    def __init__(self, res_q, wait_q_q, work_q):
         Thread.__init__(self)
         self.res_q = res_q
-        self.wait_q = wait_q
+        self.wait_q_q = wait_q_q
         self.work_q = work_q
 
-    def run(self):
-        attacker, id = self.work_q.get()
-        if attacker:
-            n = 100
-        elif random.uniform(0, 1) > 0.9:
-            n = 29
-        else:
-            n = 9
-        if attacker:
-            delay = 0
-        else:
-            delay = random.expovariate(1.0/45)
-        start = time.time()
-        try:
-            urllib2.urlopen(url + str(n) + "&id=%d" % id)
-            error = 0
-        except urllib2.URLError:
-            error = 1
-        end = time.time()
-        self.res_q.put((n, end - start, error))
-        self.wait_q.put((time.time() + delay, attacker, id))
-        self.work_q.task_done()
-
-def do_fetch(attacker, id, res_q, wait_q, work_q):
-    work_q.put((attacker, id))
-    f = fetcher(res_q, wait_q, work_q)
-    f.start()
+def fetch(attacker, id, res_q, wait_q_q):
+    if attacker:
+        n = 100
+    elif random.uniform(0, 1) > 0.9:
+        n = 29
+    else:
+        n = 9
+    if attacker:
+        delay = 0
+    else:
+        delay = random.expovariate(1.0/45)
+    print "starting fetch"
+    start = time.time()
+    print "starting query"
+    query('google.com', id = id)
+    print "query is done"
+    try:
+        print "starting url open"
+        urllib2.urlopen(url + str(n) + "&id=%d" % id)
+        print "url open done"
+        error = 0
+    except urllib2.URLError:
+        print "url open failed"
+        error = 1
+    end = time.time()
+    res_q.put((n, end - start, error))
+    print "putting in wait_q_q"
+    wait_q_q.put((time.time() + delay, attacker, id))
 
 def main(argv=None):
     if argv is None:
@@ -51,44 +54,66 @@ def main(argv=None):
 
     id_base = int(sys.argv[1])
 
+    manager = Manager()
+
     wait_q = PriorityQueue()
-    work_q = Queue()
-    res_q = Queue()
+    wait_q_q = manager.Queue()
+    res_q = manager.Queue()
 
     out_file = open('latency.csv', 'a')
 
     print "PID: %d" % os.getpid()
     print "Running the gauntlet:"
     id = id_base
-    for i in range(256):
+    num_clients = 0
+    for i in range(10):
         wait_q.put((time.time(), False, id))
         id += 1
-    for i in range(1023-256-6+20):
+        num_clients += 1
+    for i in range(20):
         wait_q.put((time.time(), True, id))
         id += 1
+        num_clients += 1
+
+    pool = Pool(processes=num_clients)
 
     while True:
         t, attacker, id = wait_q.get()
+        print "got a wait_q"
         delta = t - time.time()
         delay = max(delta, 0)
         if delay > 0:
-            Timer(delay, do_fetch, (attacker, id, res_q, wait_q, work_q)).start()
+            print "delaying"
+            Timer(delay, pool.apply_async, (fetch, (attacker, id, res_q, wait_q_q))).start()
         else:
-            do_fetch(attacker, id, res_q, wait_q, work_q)
+            print "no delay"
+            pool.apply_async(fetch, (attacker, id, res_q, wait_q_q))
         wait_q.task_done()
 
+        print "empty wait_q_q"
+        while not wait_q_q.empty():
+            print "got a wait_q_q"
+            wait_q.put(wait_q_q.get())
+
+        # we have to make sure there is at least one element in wait_q before the end of the loop
+        if wait_q.empty():
+            print "wait_q is empty"
+            r = wait_q_q.get()
+            print "got a wait_q_q"
+            wait_q.put(r)
+
+        print "empty res_q"
         while not res_q.empty():
             res = res_q.get()
+            print "got a res_q"
             out_file.write("%d, %f, %d\n" % (res[0], res[1], res[2]))
             out_file.flush()
-            res_q.task_done()
+        print "done with empty queue"
 
-    work_q.join()
-
+    print "done with infinite loop"
     while not res_q.empty():
         res = res_q.get()
         out_file.write("%d, %f, %d\n" % (res[0], res[1], res[2]))
-        res_q.task_done()
 
     return 0
 
