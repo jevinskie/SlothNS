@@ -12,7 +12,7 @@ import subprocess
 from pow import *
 
 class SlothNSServerFactory(server.DNSServerFactory):
-    def __init__(self, baseip = None, n = 20, seed = 0, l = 10, verbose = 0):
+    def __init__(self, baseip = None, n = 22, seed = 0, l = 26, verbose = 0):
         server.DNSServerFactory.__init__(self, verbose = verbose)
         self.liveChallenges = {}
         if verbose:
