@@ -1,15 +1,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stddef.h>
 
 #pragma pack(1)
 
 typedef struct {
-    uint32_t *perm_table;
     uint32_t rand[4];
     uint32_t seed;
     uint32_t size;
     uint32_t n;
+    uint32_t perm_table[];
 } pow_t;
 
 typedef struct {

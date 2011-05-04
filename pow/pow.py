@@ -1,13 +1,14 @@
 from ctypes import *
 from construct import *
 import os
+from multiprocessing import sharedctypes
 
 class _pow_t(Structure):
-    _fields_ = [("perm_table", POINTER(c_uint32)),
-                ("rand", c_uint32 * 4),
+    _fields_ = [("rand", c_uint32 * 4),
                 ("seed", c_uint32),
                 ("size", c_uint32),
-                ("n", c_uint32),]
+                ("n", c_uint32),
+                ("perm_table", c_uint32 * 2**20),]
     _pack_ = 1
 _pow_t_p = POINTER(_pow_t)
 
@@ -78,7 +79,7 @@ class pow_res(object):
     def __init__(self, pow_obj, req, wire = None):
         self.pow = pow_obj
         self.req = req
-        self.res_t = _pow_lib.create_res(self.pow.pow_t, self.req.req_t)
+        self.res_t = _pow_lib.create_res(pointer(self.pow.pow_t), self.req.req_t)
         if wire:
             res = _pow_res_wire.parse(wire)
             self.path = int(res.hex_path, 16)
@@ -108,10 +109,11 @@ class pow_req(object):
     def __init__(self, pow_obj = None, l = None, wire = None):
         if wire:
             c = _pow_req_wire.parse(wire)
-            pow_obj = pow(c.n, c.seed)
+            if pow_obj == None:
+                pow_obj = pow(c.n, c.seed)
             l = c.l
         self.pow = pow_obj
-        self.req_t = _pow_lib.create_req(self.pow.pow_t, l)
+        self.req_t = _pow_lib.create_req(pointer(self.pow.pow_t), l)
         if wire:
             for i in range(l):
                 self.v[i] = c.v[i]
@@ -135,7 +137,7 @@ class pow_req(object):
             self.__dict__[name] = value
 
     def verify_res(self, res):
-        if _pow_lib.verify_res(self.pow.pow_t, self.req_t, res.res_t):
+        if _pow_lib.verify_res(pointer(self.pow.pow_t), self.req_t, res.res_t):
             return True
         else:
             return False
@@ -155,23 +157,26 @@ class pow_req(object):
         c.w = [self.w[i] for i in range(self.l)]
         return _pow_req_wire.build(c)
 
-
 class pow(object):
-    def __init__(self, n, seed):
-        self.pow_t = _pow_lib.create(n, seed)
+    def __init__(self, n, seed, share = None):
+        if share == None:
+            self.pow_t = _pow_lib.create(n, seed).contents
+        else:
+            p = sharedctypes.copy(share.pow_t)
+            self.pow_t = p
 
-    def __del__(self):
-        _pow_lib.destroy(self.pow_t)
+    #def __del__(self):
+    #    _pow_lib.destroy(self.pow_t)
 
     def __getattr__(self, name):
         try:
-            return self.pow_t.contents.__getattribute__(name)
+            return self.pow_t.__getattribute__(name)
         except:
             raise AttributeError
 
     def __setattr__(self, name, value):
-        if 'pow_t' in self.__dict__ and any(name in f for f in self.pow_t.contents._fields_):
-            self.pow_t.contents.__setattr__(name, value)
+        if 'pow_t' in self.__dict__ and any(name in f for f in self.pow_t._fields_):
+            self.pow_t.__setattr__(name, value)
         else:
             self.__dict__[name] = value
 

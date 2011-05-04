@@ -37,10 +37,6 @@ void _gen_perm_table(pow_t *p)
 
     assert(p != NULL);
 
-    // allocate the table
-    p->perm_table = malloc(sizeof(uint32_t) * p->size);
-    assert(p->perm_table != NULL);
-
     // fill the table with the elements of D
     for (i = 0; i < p->size; i++)
     {
@@ -237,7 +233,7 @@ pow_t *pow_create(uint32_t n, uint32_t seed)
 {
     pow_t *p;
 
-    p = malloc(sizeof(pow_t));
+    p = malloc(offsetof(pow_t, perm_table) + sizeof(uint32_t) * (1<<n));
     assert(p != NULL);
 
     assert(n > 0 && n <= 32);
@@ -255,7 +251,6 @@ pow_t *pow_create(uint32_t n, uint32_t seed)
 void pow_destroy(pow_t *p)
 {
     assert(p != NULL);
-    free(p->perm_table);
     free(p);
 }
 
