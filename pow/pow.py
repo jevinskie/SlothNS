@@ -8,7 +8,7 @@ class _pow_t(Structure):
                 ("seed", c_uint32),
                 ("size", c_uint32),
                 ("n", c_uint32),
-                ("perm_table", c_uint32 * 2**20),]
+                ("perm_table", c_uint32 * 2**22),]
     _pack_ = 1
 _pow_t_p = POINTER(_pow_t)
 
