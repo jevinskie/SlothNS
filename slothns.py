@@ -29,13 +29,11 @@ class SlothNSServerFactory(server.DNSServerFactory):
         rr = dns.RRHeader(name = name, type = resource.TYPE, ttl = resource.ttl, payload = resource)
         return rr
 
-    def issueChallenge(self, message, protocol, address):
-        ip = address[0]
-
+    def issueChallenge(self, message, protocol, address, id):
         req = pow_req(self.pow, self.l)
-        self.liveChallenges[ip] = req
+        self.liveChallenges[id] = req
 
-        name = str(message.queries[0].name)
+        name = next((q.name.name for q in message.queries if q.type == dns.AAAA), None)
 
         null_req = dns.Record_NULL(req.pack(), ttl=0)
 
@@ -52,11 +50,10 @@ class SlothNSServerFactory(server.DNSServerFactory):
         #subprocess.check_call(['ip', 'addr', 'add', whole, 'dev', 'he-ipv6'])
         return whole
 
-    def checkResponse(self, message, protocol, address):
-        query = filter(lambda q: q.type == dns.AAAA, message.queries)[0]
-        response = filter(lambda q: q.type == dns.NULL, message.queries)[0]
-        ip = address[0]
-        req = self.liveChallenges[ip]
+    def checkResponse(self, message, protocol, address, id):
+        query = next((q for q in message.queries if q.type == dns.AAAA), None)
+        response = next((q for q in message.queries if q.type == dns.NULL), None)
+        req = self.liveChallenges[id]
         res = pow_res(self.pow, req, wire = response.name.name)
         if req.verify_res(res):
             aaaa = dns.Record_AAAA(address = self.gen_rand_ipv6(), ttl = 0)
@@ -65,16 +62,18 @@ class SlothNSServerFactory(server.DNSServerFactory):
         else:
             message.rCode = dns.EREFUSED
             protocol.writeMessage(message, address)
-        del self.liveChallenges[ip]
+        del self.liveChallenges[id]
         return
 
 
     def handleQuery(self, message, protocol, address):
-        ip = address[0]
-        if ip not in self.liveChallenges:
-            self.issueChallenge(message, protocol, address)
+        id = next((q for q in message.queries if q.type == dns.TXT), None)
+        if id == None:
+            id = address[0]
+        if id not in self.liveChallenges:
+            self.issueChallenge(message, protocol, address, id)
         else:
-            self.checkResponse(message, protocol, address)
+            self.checkResponse(message, protocol, address, id)
         return
 
 factory = SlothNSServerFactory(baseip = sys.argv[1], verbose = 10)

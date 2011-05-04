@@ -31,23 +31,31 @@ class SlothNSResolver(client.Resolver):
         return d
 
     @defer.inlineCallbacks
-    def lookupAddress(self, name, timeout = None):
+    def lookupAddress(self, name, id = None, timeout = None):
         global result
-        res = yield client.Resolver.lookupIPV6Address(self, name, timeout)
+        query_aaaa = dns.Query(name = name, type = dns.AAAA)
+        if id != None:
+            query_id = dns.Query(name = 'id=%d' % id, type = dns.TXT)
+            res = yield self._lookup_queries([query_aaaa, query_id], timeout)
+        else:
+            res = yield self._lookup_queries([query_aaaa], timeout)
         challenge = res[2][0]
         req = pow_req(wire = challenge.payload.payload)
         res = req.create_res()
-        query_aaaa = dns.Query(name = name, type = dns.AAAA)
         query_res = dns.Query(name = res.pack(), type = dns.NULL)
-        res = yield self._lookup_queries([query_aaaa, query_res], timeout)
+        if id != None:
+            res = yield self._lookup_queries([query_aaaa, query_id, query_res], timeout)
+        else:
+            res = yield self._lookup_queries([query_aaaa, query_res], timeout)
         result = res
         reactor.stop()
 
+#resolver = SlothNSResolver(servers=[('172.18.49.98', 5454)])
 resolver = SlothNSResolver(servers=[('127.0.0.1', 5454)])
 
-def query():
+def query(id = None):
     global result
-    reactor.callWhenRunning(resolver.lookupAddress, 'google.com')
+    reactor.callWhenRunning(resolver.lookupAddress, 'google.com', id = id)
     reactor.run()
     return result
 
