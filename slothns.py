@@ -49,7 +49,7 @@ class SlothNSServerFactory(server.DNSServerFactory):
     def gen_rand_ipv6(self):
         rand_part = ':'.join([hex(random.randrange(0,2**16))[2:] for i in range(4)])
         whole = self.baseip + ':' + rand_part
-        subprocess.check_call(['ip', 'addr', 'add', whole, 'dev', 'he-ipv6'])
+        #subprocess.check_call(['ip', 'addr', 'add', whole, 'dev', 'he-ipv6'])
         return whole
 
     def checkResponse(self, message, protocol, address):
