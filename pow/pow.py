@@ -59,7 +59,7 @@ _pow_lib.destroy_res = _pow_lib.pow_destroy_res
 _pow_res_wire = \
     Struct("pow_res_wire",
         Const(String("magic", 8), "SLOTHRES"),
-        UBInt32("path"),
+        String("hex_path", 8),
     )
 
 _pow_req_wire = \
@@ -81,7 +81,7 @@ class pow_res(object):
         self.res_t = _pow_lib.create_res(self.pow.pow_t, self.req.req_t)
         if wire:
             res = _pow_res_wire.parse(wire)
-            self.path = res.path
+            self.path = int(res.hex_path, 16)
 
     def __del__(self):
         _pow_lib.destroy_res(self.res_t)
@@ -101,7 +101,7 @@ class pow_res(object):
     def pack(self):
         c = Container()
         c.magic = None
-        c.path = self.path
+        c.hex_path = "%08X" % self.path
         return _pow_res_wire.build(c)
 
 class pow_req(object):
