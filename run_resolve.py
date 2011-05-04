@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from slothresolv import query
+from slothresolv import query, shutdown
 
-print query(id = 0)
+print query('google.com', id = 0)
+shutdown()
 
