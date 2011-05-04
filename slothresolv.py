@@ -31,7 +31,7 @@ class SlothNSResolver(client.Resolver):
         return d
 
     @defer.inlineCallbacks
-    def lookupAddress(self, name, id = None, timeout = None):
+    def lookupAddress(self, name, id = None, pow_obj = None, timeout = None):
         query_aaaa = dns.Query(name = name, type = dns.AAAA)
         if id != None:
             query_id = dns.Query(name = 'id=%d' % id, type = dns.TXT)
@@ -39,7 +39,7 @@ class SlothNSResolver(client.Resolver):
         else:
             res = yield self._lookup_queries([query_aaaa], timeout)
         challenge = res[2][0]
-        req = pow_req(wire = challenge.payload.payload)
+        req = pow_req(pow_obj = pow_obj, wire = challenge.payload.payload)
         res = req.create_res()
         query_res = dns.Query(name = res.pack(), type = dns.NULL)
         if id != None:
@@ -53,12 +53,12 @@ resolver = SlothNSResolver(servers=[('127.0.0.1', 5454)])
 
 running = False
 
-def query(name, id = None):
+def query(name, id = None, pow_obj = None):
     global running
     if not running:
         running = True
         Thread(target=reactor.run, args=(False,)).start()
-    return blockingCallFromThread(reactor, resolver.lookupAddress, name, id = id)
+    return blockingCallFromThread(reactor, resolver.lookupAddress, name, id = id, pow_obj = pow_obj)
 
 def shutdown():
     reactor.stop()
