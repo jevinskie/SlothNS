@@ -3,13 +3,18 @@
 import sys
 import resource
 from pow import *
+import time
 
 n = int(sys.argv[1])
 l = int(sys.argv[2])
 
 print "creating pow"
 sys.stdout.flush()
+start = time.time()
 p = pow(n, 0)
+end = time.time()
+
+print "pow took %f" % (end-start)
 
 print "creating req"
 sys.stdout.flush()
@@ -17,7 +22,10 @@ req = p.create_req(l)
 
 print "creating res"
 sys.stdout.flush()
+start = time.time()
 res = req.create_res()
+end = time.time()
+print "res took %f" % (end-start)
 
 print "verifying res"
 sys.stdout.flush()
