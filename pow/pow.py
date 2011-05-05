@@ -61,6 +61,7 @@ _pow_res_wire = \
     Struct("pow_res_wire",
         Const(String("magic", 8), "SLOTHRES"),
         String("hex_path", 8),
+        String("hex_x0", 8),
     )
 
 _pow_req_wire = \
@@ -103,6 +104,7 @@ class pow_res(object):
         c = Container()
         c.magic = None
         c.hex_path = "%08X" % self.path
+        c.hex_x0 = "%08X" % self.req.x0
         return _pow_res_wire.build(c)
 
 class pow_req(object):
