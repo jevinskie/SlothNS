@@ -65,7 +65,7 @@ _pow_res_wire = \
     )
 
 _pow_req_wire = \
-    Struct("pow_req_wire_head",
+    Struct("pow_req_wire",
         Const(String("magic", 8), "SLOTHREQ"),
         UBInt32("seed"),
         UBInt8("n"),
@@ -76,14 +76,54 @@ _pow_req_wire = \
         Array(lambda ctx: ctx.l, UBInt32("w")),
     )
 
+_pow_res_wire_lite = \
+    Struct("pow_res_wire_lite",
+        Const(String("magic", 8), "SLOTHRSL"),
+        UBInt32("id"),
+        UBInt32("path"),
+        UBInt32("x0"),
+    )
+
+_pow_req_wire_lite = \
+    Struct("pow_req_wire_lite",
+        Const(String("magic", 8), "SLOTHRQL"),
+        UBInt32("id"),
+        UBInt32("seed"),
+        UBInt8("n"),
+        UBInt32("x0"),
+        UBInt32("check"),
+        UBInt8("l"),
+        Array(lambda ctx: ctx.l, UBInt32("v")),
+        Array(lambda ctx: ctx.l, UBInt32("w")),
+    )
+
+_pow_init_wire_lite = \
+    Struct("pow_init_wire_lite",
+        Const(String("magic", 8), "SLOTHINT"),
+        UBInt32("id"),
+    )
+
+_pow_fin_wire_lite = \
+    Struct("pow_fin_wire_lite",
+        Const(String("magic", 8), "SLOTHFIN"),
+        UBInt32("id"),
+        UBInt8("ok"),
+    )
+
+
+
 class pow_res(object):
-    def __init__(self, pow_obj, req, wire = None):
+    def __init__(self, pow_obj, req, wire = None, wire_lite = None):
         self.pow = pow_obj
         self.req = req
         self.res_t = _pow_lib.create_res(pointer(self.pow.pow_t), self.req.req_t)
         if wire:
             res = _pow_res_wire.parse(wire)
             self.path = int(res.hex_path, 16)
+        elif wire_lite:
+            res = _pow_res_wire_lite.parse(wire_lite)
+            self.path = res.path
+            self.id = res.id
 
     def __del__(self):
         _pow_lib.destroy_res(self.res_t)
@@ -107,16 +147,30 @@ class pow_res(object):
         c.hex_x0 = "%08X" % self.req.x0
         return _pow_res_wire.build(c)
 
+    def pack_lite(self, idd):
+        c = Container()
+        c.magic = None
+        c.id = idd
+        c.path = self.path
+        c.x0 = self.req.x0
+        return _pow_res_wire_lite.build(c)
+
 class pow_req(object):
-    def __init__(self, pow_obj = None, l = None, wire = None):
+    def __init__(self, pow_obj = None, l = None, wire = None, wire_lite = None):
         if wire:
             c = _pow_req_wire.parse(wire)
             if pow_obj == None:
                 pow_obj = pow(c.n, c.seed)
             l = c.l
+        elif wire_lite:
+            c = _pow_req_wire_lite.parse(wire_lite)
+            if pow_obj == None:
+                pow_obj = pow(c.n, c.seed)
+            l = c.l
+            self.id = c.id
         self.pow = pow_obj
         self.req_t = _pow_lib.create_req(pointer(self.pow.pow_t), l)
-        if wire:
+        if wire or wire_lite:
             for i in range(l):
                 self.v[i] = c.v[i]
                 self.w[i] = c.w[i]
@@ -158,6 +212,20 @@ class pow_req(object):
         c.v = [self.v[i] for i in range(self.l)]
         c.w = [self.w[i] for i in range(self.l)]
         return _pow_req_wire.build(c)
+
+    def pack_lite(self, idd):
+        c = Container()
+        c.magic = None
+        c.id = idd
+        c.seed = self.pow.seed
+        c.n = self.pow.n
+        c.x0 = self.x0
+        c.check = self.check
+        c.l = self.l
+        c.v = [self.v[i] for i in range(self.l)]
+        c.w = [self.w[i] for i in range(self.l)]
+        return _pow_req_wire_lite.build(c)
+
 
 class pow(object):
     def __init__(self, n, seed, share = None):
