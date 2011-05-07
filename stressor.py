@@ -7,7 +7,7 @@ import random
 from threading import Timer, Thread
 from Queue import PriorityQueue, Empty
 import os
-from slothresolv import query
+from slothresolv_lite import query
 from multiprocessing import Pool, Manager, Queue
 sys.path.append('./pow')
 from pow import *
@@ -20,7 +20,8 @@ hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
 
-url = 'http://172.18.48.92:8080/fib.php?n='
+url = 'http://172.18.49.114:8080/fib.php?n='
+#url = 'http://172.18.48.92:8080/fib.php?n='
 
 p = pow(22, 0)
 shared_pow = pow(p.n, p.seed, share = p)
@@ -49,7 +50,10 @@ def fetch(attacker, id):
     else:
         delay = random.expovariate(1.0/45)
     start = time.time()
-    query('google.com', logger, id = id, pow_obj = pow_obj)
+    res = query(logger, id, pow_obj = pow_obj)
+    if not res:
+        logger.info("id: %d failed PoW" % id)
+        return
     logger.info("id: %d completed PoW, sending HTTP req for n: %d" % (id, n))
     try:
         urllib2.urlopen(url + str(n) + "&id=%d" % id)
@@ -57,8 +61,8 @@ def fetch(attacker, id):
     except urllib2.URLError:
         error = 1
     end = time.time()
-    res_q.put((id, n, end - start, error), timeout=5)
-    wait_q_q.put((time.time() + delay, attacker, id), timeout=5)
+    res_q.put((id, n, end - start, error))
+    wait_q_q.put((time.time() + delay, attacker, id))
 
 start_time = time.time()
 
@@ -79,11 +83,11 @@ def main(argv=None):
     logger.info("Running the gauntlet:")
     id = id_base
     num_clients = 0
-    for i in range(10):
+    for i in range(45):
         wait_q.put((time.time(), False, id))
         id += 1
         num_clients += 1
-    for i in range(10):
+    for i in range(-1):
         wait_q.put((time.time(), True, id))
         id += 1
         num_clients += 1
@@ -109,12 +113,12 @@ def main(argv=None):
             wait_q.put(r)
 
         while not res_q.empty():
-            id, n, t, error = res_q.get(timeout = 5)
+            id, n, t, error = res_q.get()
             logger.info("id: %d got a response for n = %d in %f error: %d" % (id, n, t, error))
             out_file.write("%d, %d, %f, %d\n" % (id, n, t, error))
             out_file.flush()
-        if time.time() - start_time > 120:
-            break
+        #if time.time() - start_time > 120:
+        #    break
 
 
     while not res_q.empty():
