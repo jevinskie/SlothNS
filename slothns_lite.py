@@ -83,7 +83,7 @@ class BadnessWatcher(DatagramProtocol):
             n, idd, duration = map(int, data.split())
         except:
             return
-        utilization[idd] += duration
+        utilization[idd] += n
         util_95 = stats.scoreatpercentile(utilization, 95)
         logger.info("id: %d asked for %d and took %d" % (id, n, duration))
         logger.info("util_95: %r" % util_95)
