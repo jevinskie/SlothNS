@@ -34,7 +34,7 @@ while True:
     if m == None:
         continue
     res = m.groupdict()
-    if res['agent'] != "Python-urllib/2.6":
+    if res['agent'] != "Python-urllib/2.7":
         continue
     m = req.match(res['request'])
     if m == None:

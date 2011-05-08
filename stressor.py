@@ -15,12 +15,15 @@ import logging
 
 logger = logging.getLogger('stressor')
 hdlr = logging.FileHandler('stressor.log')
+stdhdlr = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
+stdhdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
+logger.addHandler(stdhdlr)
 logger.setLevel(logging.INFO)
 
-url = 'http://172.18.49.114:8080/fib.php?n='
+url = 'http://172.18.49.16:8080/fib.php?n='
 #url = 'http://172.18.48.92:8080/fib.php?n='
 
 p = pow(22, 0)
@@ -120,7 +123,6 @@ def main(argv=None):
         #    break
 
         out_file.flush()
-        logger.flush()
 
 
     while not res_q.empty():
