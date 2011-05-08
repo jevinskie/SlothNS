@@ -39,7 +39,7 @@ class fetcher(Thread):
 def fetch(attacker, id):
     pow_obj = shared_pow
     if attacker:
-        n = 100
+        n = 1000
     elif random.uniform(0, 1) > 0.9:
         n = 29
     else:
@@ -83,11 +83,11 @@ def main(argv=None):
     logger.info("Running the gauntlet:")
     id = id_base
     num_clients = 0
-    for i in range(45):
+    for i in range(256):
         wait_q.put((time.time(), False, id))
         id += 1
         num_clients += 1
-    for i in range(-1):
+    for i in range(256):
         wait_q.put((time.time(), True, id))
         id += 1
         num_clients += 1
@@ -105,7 +105,7 @@ def main(argv=None):
         wait_q.task_done()
 
         while not wait_q_q.empty():
-            wait_q.put(wait_q_q.get(timeout = 5))
+            wait_q.put(wait_q_q.get())
 
         # we have to make sure there is at least one element in wait_q before the end of the loop
         if wait_q.empty():
@@ -116,9 +116,11 @@ def main(argv=None):
             id, n, t, error = res_q.get()
             logger.info("id: %d got a response for n = %d in %f error: %d" % (id, n, t, error))
             out_file.write("%d, %d, %f, %d\n" % (id, n, t, error))
-            out_file.flush()
         #if time.time() - start_time > 120:
         #    break
+
+        out_file.flush()
+        logger.flush()
 
 
     while not res_q.empty():

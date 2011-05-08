@@ -6,6 +6,7 @@ sys.path.append('./pow')
 import random
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
+from twisted.internet.task import LoopingCall
 import pow as p
 import numpy
 from scipy import stats
@@ -37,7 +38,7 @@ class SlothNSLite(DatagramProtocol):
     def calculate_badness(self, idd):
         global utilization, util_95
         min_l = 15
-        max_l = 29
+        max_l = 32
         l_diff = max_l - min_l
     
         util = min(utilization[idd], util_95)
@@ -85,13 +86,13 @@ class BadnessWatcher(DatagramProtocol):
         utilization[idd] += duration
         util_95 = stats.scoreatpercentile(utilization, 95)
         logger.info("id: %d asked for %d and took %d" % (id, n, duration))
-        logger.info("utilization: %r" % utilization)
         logger.info("util_95: %r" % util_95)
         return
 
 
 lite = reactor.listenUDP(5555, SlothNSLite())
 badwatch = reactor.listenUDP(22000, BadnessWatcher())
+LoopingCall(logger.flush).start(1)
 
 reactor.run()
 

@@ -4,6 +4,7 @@ import os
 import re
 import socket
 import sys
+import time
 
 parts = [
     r'(?P<time>\d+)',                   # time %t
@@ -27,6 +28,8 @@ port = int(sys.argv[2])
 
 while True:
     line = f.readline()
+    if not line:
+        time.sleep(0.1)
     m = pattern.match(line)
     if m == None:
         continue
