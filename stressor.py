@@ -54,16 +54,20 @@ def fetch(attacker, id):
         delay = random.expovariate(1.0/45)
     start = time.time()
     res = query(logger, id, pow_obj = pow_obj)
+    end_query = time.time()
     if not res:
         logger.info("id: %d failed PoW" % id)
         return
-    logger.info("id: %d completed PoW, sending HTTP req for n: %d" % (id, n))
+    logger.info("id: %d completed PoW in %f, sending HTTP req for n: %d" % (id, end_query-start, n))
     try:
         urllib2.urlopen(url + str(n) + "&id=%d" % id)
+        end = time.time()
+        logger.info("id: %d GOOD GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n)
         error = 0
     except urllib2.URLError:
+        end = time.time()
+        logger.info("id: %d FAILED GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n)
         error = 1
-    end = time.time()
     res_q.put((id, n, end - start, error))
     wait_q_q.put((time.time() + delay, attacker, id))
 
