@@ -62,11 +62,11 @@ def fetch(attacker, id):
     try:
         urllib2.urlopen(url + str(n) + "&id=%d" % id)
         end = time.time()
-        logger.info("id: %d GOOD GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n)
+        logger.info("id: %d GOOD GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n))
         error = 0
     except urllib2.URLError:
         end = time.time()
-        logger.info("id: %d FAILED GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n)
+        logger.info("id: %d FAILED GET in %f (total %f) for n: %d" % (id, end - end_query, end-start, n))
         error = 1
     res_q.put((id, n, end - start, error))
     wait_q_q.put((time.time() + delay, attacker, id))
