@@ -8,7 +8,7 @@ import pow as p
 import os
 from construct import *
 
-ip = '172.18.49.16'
+ip = '127.0.0.1'
 
 def query(logger, idd, pow_obj = None):
     logger.info("inside query: id: %d pid: %d" % (idd, os.getpid()))

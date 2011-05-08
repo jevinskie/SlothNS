@@ -14,6 +14,7 @@ from math import isnan
 import time
 import logging
 from construct import *
+import os
 
 logger = logging.getLogger('slothns')
 hdlr = logging.FileHandler('slothns.log')

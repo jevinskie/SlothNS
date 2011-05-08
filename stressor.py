@@ -23,7 +23,7 @@ logger.addHandler(hdlr)
 logger.addHandler(stdhdlr)
 logger.setLevel(logging.INFO)
 
-url = 'http://172.18.49.16:8080/fib.php?n='
+url = 'http://127.0.0.1/dcsl/fib.php?n='
 #url = 'http://172.18.48.92:8080/fib.php?n='
 
 p = pow(22, 0)
@@ -92,17 +92,17 @@ def main(argv=None):
     out_file = open('latency.csv', 'a')
 
     load_thread = Thread(target=check_load)
-    load_thread.run()
+    load_thread.start()
 
     logger.info("PID: %d" % os.getpid())
     logger.info("Running the gauntlet:")
     id = id_base
     num_clients = 0
-    for i in range(256):
+    for i in range(2):
         wait_q.put((time.time(), False, id))
         id += 1
         num_clients += 1
-    for i in range(256):
+    for i in range(2):
         wait_q.put((time.time(), True, id))
         id += 1
         num_clients += 1
