@@ -17,7 +17,7 @@ parts = [
 
 pattern = re.compile(r'\s+'.join(parts)+r'\s*\Z')
 
-req = re.compile(r'GET /fib\.php\?n=(?P<n>\d+)&id=(?P<id>\d+) HTTP/1\.1')
+req = re.compile(r'GET.*fib\.php\?n=(?P<n>\d+)&id=(?P<id>\d+) HTTP/1\.1')
 
 f = open(sys.argv[1], 'r')
 f.seek(0,  os.SEEK_END)
@@ -34,7 +34,7 @@ while True:
     if m == None:
         continue
     res = m.groupdict()
-    if res['agent'] != "Python-urllib/2.7":
+    if not re.match(r'Python-urllib', res['agent']):
         continue
     m = req.match(res['request'])
     if m == None:
