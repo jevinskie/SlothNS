@@ -11,7 +11,7 @@ l = int(sys.argv[2])
 print "creating pow"
 sys.stdout.flush()
 start = time.time()
-p = pow(n, 0)
+p = pow(n, 9)
 end = time.time()
 
 print "pow took %f" % (end-start)

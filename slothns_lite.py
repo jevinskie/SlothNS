@@ -95,9 +95,14 @@ class BadnessWatcher(DatagramProtocol):
         logger.info("util_95: %r" % util_95)
         return
 
+def check_load():
+    l = os.getloadavg()
+    logger.info("load: %f %f %f" % (l[0], l[1], l[2]))
+
 
 lite = reactor.listenUDP(5555, SlothNSLite())
 badwatch = reactor.listenUDP(22000, BadnessWatcher())
+LoopingCall(check_load).start(5)
 
 reactor.run()
 

@@ -73,6 +73,11 @@ def fetch(attacker, id):
 
 start_time = time.time()
 
+def check_load():
+    while True:
+        l = os.getloadavg()
+        logger.info("load: %f %f %f" % (l[0], l[1], l[2]))
+        time.sleep(5)
 
 def main(argv=None):
     if argv is None:
@@ -85,6 +90,9 @@ def main(argv=None):
     wait_q = PriorityQueue()
 
     out_file = open('latency.csv', 'a')
+
+    load_thread = Thread(target=check_load)
+    load_thread.run()
 
     logger.info("PID: %d" % os.getpid())
     logger.info("Running the gauntlet:")
